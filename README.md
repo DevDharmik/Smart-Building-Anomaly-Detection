@@ -75,9 +75,9 @@ data/processed/smartbuilding.db
 | Sprint | Focus | Status |
 |---|---|---|
 | Sprint 1 | ETL pipeline, SQLite ingestion, EDA, data cleaning | ✅ Complete |
-| Sprint 2 | Temporal features, rolling stats, Z-score/IQR anomaly flagging | 🔄 In Progress |
-| Sprint 3 | ML-based anomaly detection (Isolation Forest, autoencoders) | 🔜 Upcoming |
-| Sprint 4 | Groq LLM explanation layer + Streamlit dashboard | 🔜 Upcoming |
+| Sprint 2 | Temporal features, rolling stats, Z-score/IQR anomaly flagging | ✅ Complete |
+| Sprint 3 | ML-based anomaly detection (Isolation Forest, autoencoders) | ✅ Complete |
+| Sprint 4 | Groq LLM explanation layer + Streamlit dashboard | ✅ Complete |
 
 ---
 
