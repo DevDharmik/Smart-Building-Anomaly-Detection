@@ -27,7 +27,9 @@ Smart-Building-Anomaly-Detection/
 │
 ├── notebooks/
 │   ├── sprint1_pipeline.ipynb      # ETL, EDA, data cleaning
-│   └── sprint2_features.ipynb      # Feature engineering, anomaly flagging
+│   ├── sprint2_features.ipynb      # Feature engineering, anomaly flagging
+│   ├── sprint3_models.ipynb        # ML-based anomaly detection
+│   └── sprint4_dashboard.ipynb     # LLM explanation layer + Streamlit
 │
 ├── src/                    # Reusable helper modules
 ├── dashboard/              # Streamlit app (coming Sprint 4)
