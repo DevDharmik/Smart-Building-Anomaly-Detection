@@ -18,8 +18,12 @@ GDRIVE_ID = "11Ko5ebeHwO-6PraaCm94gKkbNRKOsPJo"
 
 if not os.path.exists(DB_PATH):
     with st.spinner("⬇️ Downloading database from Google Drive..."):
-        gdown.download(f"https://drive.google.com/uc?id={GDRIVE_ID}",
-                       DB_PATH, quiet=False)
+        gdown.download(
+            f"https://drive.google.com/uc?id={GDRIVE_ID}&confirm=t",
+            DB_PATH,
+            quiet=False,
+            fuzzy=True
+        )
 
 # ── Data loading ───────────────────────────────────────────────────────────
 @st.cache_data
@@ -62,7 +66,7 @@ groq_key = st.sidebar.text_input("Groq API Key", type="password",
 
 # ── Load data ──────────────────────────────────────────────────────────────
 if not os.path.exists(DB_PATH):
-    st.error("Database could not be downloaded. Check the Google Drive link.")
+    st.error("❌ Database could not be downloaded. Check the Google Drive link.")
     st.stop()
 
 df, expl_df = load_data(DB_PATH)
