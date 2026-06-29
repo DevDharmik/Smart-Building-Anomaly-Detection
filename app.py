@@ -1,9 +1,9 @@
 import os
+import requests
 import streamlit as st
 import pandas as pd
 import sqlite3
 import matplotlib.pyplot as plt
-import gdown
 from groq import Groq
 from sklearn.ensemble import IsolationForest
 from sklearn.preprocessing import MinMaxScaler
@@ -16,14 +16,24 @@ st.set_page_config(page_title="Smart Building Anomaly Detection",
 DB_PATH   = "smart_building.db"
 GDRIVE_ID = "11Ko5ebeHwO-6PraaCm94gKkbNRKOsPJo"
 
+def download_from_gdrive(file_id, dest):
+    URL     = "https://drive.google.com/uc?export=download"
+    session = requests.Session()
+    response = session.get(URL, params={"id": file_id}, stream=True)
+    token = None
+    for key, value in response.cookies.items():
+        if key.startswith("download_warning"):
+            token = value
+    if token:
+        response = session.get(URL, params={"id": file_id, "confirm": token}, stream=True)
+    with open(dest, "wb") as f:
+        for chunk in response.iter_content(32768):
+            if chunk:
+                f.write(chunk)
+
 if not os.path.exists(DB_PATH):
     with st.spinner("⬇️ Downloading database from Google Drive..."):
-        gdown.download(
-            f"https://drive.google.com/uc?id={GDRIVE_ID}&confirm=t",
-            DB_PATH,
-            quiet=False,
-            fuzzy=True
-        )
+        download_from_gdrive(GDRIVE_ID, DB_PATH)
 
 # ── Data loading ───────────────────────────────────────────────────────────
 @st.cache_data
