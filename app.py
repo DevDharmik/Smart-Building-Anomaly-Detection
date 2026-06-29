@@ -1,15 +1,27 @@
+import os
 import streamlit as st
 import pandas as pd
 import sqlite3
 import matplotlib.pyplot as plt
-import os
+import gdown
 from groq import Groq
 from sklearn.ensemble import IsolationForest
 from sklearn.preprocessing import MinMaxScaler
 
+# ── Page config ────────────────────────────────────────────────────────────
 st.set_page_config(page_title="Smart Building Anomaly Detection",
                    page_icon="🏢", layout="wide")
 
+# ── Auto-download DB from Google Drive ────────────────────────────────────
+DB_PATH   = "smart_building.db"
+GDRIVE_ID = "11Ko5ebeHwO-6PraaCm94gKkbNRKOsPJo"
+
+if not os.path.exists(DB_PATH):
+    with st.spinner("⬇️ Downloading database from Google Drive..."):
+        gdown.download(f"https://drive.google.com/uc?id={GDRIVE_ID}",
+                       DB_PATH, quiet=False)
+
+# ── Data loading ───────────────────────────────────────────────────────────
 @st.cache_data
 def load_data(db_path):
     conn = sqlite3.connect(db_path)
@@ -45,15 +57,15 @@ st.sidebar.markdown("**Energy Anomaly Detection**")
 st.sidebar.markdown("ASHRAE GEPIII | UEAS Potsdam")
 st.sidebar.divider()
 
-db_path  = st.sidebar.text_input("SQLite DB path", "smart_building.db")
 groq_key = st.sidebar.text_input("Groq API Key", type="password",
                                   help="Free key at console.groq.com")
 
-if not os.path.exists(db_path):
-    st.warning(f"DB not found at: **{db_path}** — update the path in the sidebar.")
+# ── Load data ──────────────────────────────────────────────────────────────
+if not os.path.exists(DB_PATH):
+    st.error("Database could not be downloaded. Check the Google Drive link.")
     st.stop()
 
-df, expl_df = load_data(db_path)
+df, expl_df = load_data(DB_PATH)
 
 with st.spinner("Running Isolation Forest..."):
     df_m = run_isolation_forest(df)
@@ -184,7 +196,8 @@ An anomaly was detected with the following data:
 - Isolation Forest : {'Yes' if row.get('if_anomaly') == 1 else 'No'}
 - Z-score Flag     : {'Yes' if row.get('zscore_anomaly') == 1 else 'No'}
 
-In 3-4 sentences explain: why this reading is anomalous, what the likely cause is, and what action a building manager should take.
+In 3-4 sentences explain: why this reading is anomalous, what the likely cause is,
+and what action a building manager should take.
 """
 
         with st.spinner("Asking Groq..."):
