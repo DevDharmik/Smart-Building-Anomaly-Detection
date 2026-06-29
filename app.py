@@ -3,7 +3,6 @@ import streamlit as st
 import pandas as pd
 import sqlite3
 import matplotlib.pyplot as plt
-import gdown
 from groq import Groq
 from sklearn.ensemble import IsolationForest
 from sklearn.preprocessing import MinMaxScaler
@@ -17,22 +16,36 @@ DB_PATH   = "smart_building.db"
 GDRIVE_ID = "11Ko5ebeHwO-6PraaCm94gKkbNRKOsPJo"
 
 def download_db():
-    url = f"https://drive.google.com/uc?id={GDRIVE_ID}"
-    gdown.download(url, DB_PATH, quiet=False, fuzzy=True)
-    # Validate it's a real SQLite file
-    if os.path.exists(DB_PATH):
-        with open(DB_PATH, "rb") as f:
-            header = f.read(16)
-        if not header.startswith(b"SQLite format 3"):
-            os.remove(DB_PATH)
-            return False
+    try:
+        import gdown
+        gdown.download(id=GDRIVE_ID, output=DB_PATH, quiet=False)
+    except Exception as e:
+        st.error(f"gdown failed: {e}")
+        return False
+
+    if not os.path.exists(DB_PATH):
+        return False
+
+    with open(DB_PATH, "rb") as f:
+        header = f.read(16)
+    if not header.startswith(b"SQLite format 3"):
+        os.remove(DB_PATH)
+        st.error("Downloaded file is not a valid SQLite database.")
+        return False
+
     return True
+
+# Delete corrupt cached file if it exists but is invalid
+if os.path.exists(DB_PATH):
+    with open(DB_PATH, "rb") as f:
+        header = f.read(16)
+    if not header.startswith(b"SQLite format 3"):
+        os.remove(DB_PATH)
 
 if not os.path.exists(DB_PATH):
     with st.spinner("⬇️ Downloading database from Google Drive..."):
         success = download_db()
     if not success:
-        st.error("❌ Failed to download a valid database. Please check the Google Drive link.")
         st.stop()
 
 # ── Data loading ───────────────────────────────────────────────────────────
@@ -75,18 +88,6 @@ groq_key = st.sidebar.text_input("Groq API Key", type="password",
                                   help="Free key at console.groq.com")
 
 # ── Load data ──────────────────────────────────────────────────────────────
-if not os.path.exists(DB_PATH):
-    st.error("❌ Database not found and could not be downloaded.")
-    st.stop()
-
-# Check if existing file is valid before loading
-with open(DB_PATH, "rb") as f:
-    header = f.read(16)
-if not header.startswith(b"SQLite format 3"):
-    os.remove(DB_PATH)
-    st.error("❌ Cached database file is corrupt. Please restart the app.")
-    st.stop()
-
 df, expl_df = load_data(DB_PATH)
 
 with st.spinner("Running Isolation Forest..."):
