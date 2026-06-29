@@ -17,19 +17,49 @@ DB_PATH   = "smart_building.db"
 GDRIVE_ID = "11Ko5ebeHwO-6PraaCm94gKkbNRKOsPJo"
 
 def download_from_gdrive(file_id, dest):
-    URL     = "https://drive.google.com/uc?export=download"
     session = requests.Session()
-    response = session.get(URL, params={"id": file_id}, stream=True)
+
+    # Step 1 — initial request to get warning token
+    response = session.get(
+        "https://drive.google.com/uc",
+        params={"id": file_id, "export": "download"},
+        stream=True,
+        timeout=30
+    )
+
+    # Step 2 — extract confirmation token from cookies
     token = None
     for key, value in response.cookies.items():
         if key.startswith("download_warning"):
             token = value
+            break
+
+    # Step 3 — re-request with confirmation token
     if token:
-        response = session.get(URL, params={"id": file_id, "confirm": token}, stream=True)
+        response = session.get(
+            "https://drive.google.com/uc",
+            params={"id": file_id, "export": "download", "confirm": token},
+            stream=True,
+            timeout=120
+        )
+
+    # Step 4 — download in chunks
+    content = b""
+    for chunk in response.iter_content(chunk_size=32768):
+        if chunk:
+            content += chunk
+
+    # Step 5 — validate it's a real SQLite file
+    if not content.startswith(b"SQLite format 3"):
+        st.error("❌ Downloaded file is not a valid SQLite database. "
+                 "Google Drive may have returned a warning page. "
+                 "Please ensure the file is publicly shared.")
+        if os.path.exists(dest):
+            os.remove(dest)
+        st.stop()
+
     with open(dest, "wb") as f:
-        for chunk in response.iter_content(32768):
-            if chunk:
-                f.write(chunk)
+        f.write(content)
 
 if not os.path.exists(DB_PATH):
     with st.spinner("⬇️ Downloading database from Google Drive..."):
@@ -76,7 +106,7 @@ groq_key = st.sidebar.text_input("Groq API Key", type="password",
 
 # ── Load data ──────────────────────────────────────────────────────────────
 if not os.path.exists(DB_PATH):
-    st.error("❌ Database could not be downloaded. Check the Google Drive link.")
+    st.error("❌ Database not found and could not be downloaded.")
     st.stop()
 
 df, expl_df = load_data(DB_PATH)
