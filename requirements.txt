@@ -7,4 +7,3 @@ scikit-learn
 groq
 shap
 gdown
-requests
