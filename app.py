@@ -1,9 +1,9 @@
 import os
-import requests
 import streamlit as st
 import pandas as pd
 import sqlite3
 import matplotlib.pyplot as plt
+import gdown
 from groq import Groq
 from sklearn.ensemble import IsolationForest
 from sklearn.preprocessing import MinMaxScaler
@@ -16,54 +16,24 @@ st.set_page_config(page_title="Smart Building Anomaly Detection",
 DB_PATH   = "smart_building.db"
 GDRIVE_ID = "11Ko5ebeHwO-6PraaCm94gKkbNRKOsPJo"
 
-def download_from_gdrive(file_id, dest):
-    session = requests.Session()
-
-    # Step 1 — initial request to get warning token
-    response = session.get(
-        "https://drive.google.com/uc",
-        params={"id": file_id, "export": "download"},
-        stream=True,
-        timeout=30
-    )
-
-    # Step 2 — extract confirmation token from cookies
-    token = None
-    for key, value in response.cookies.items():
-        if key.startswith("download_warning"):
-            token = value
-            break
-
-    # Step 3 — re-request with confirmation token
-    if token:
-        response = session.get(
-            "https://drive.google.com/uc",
-            params={"id": file_id, "export": "download", "confirm": token},
-            stream=True,
-            timeout=120
-        )
-
-    # Step 4 — download in chunks
-    content = b""
-    for chunk in response.iter_content(chunk_size=32768):
-        if chunk:
-            content += chunk
-
-    # Step 5 — validate it's a real SQLite file
-    if not content.startswith(b"SQLite format 3"):
-        st.error("❌ Downloaded file is not a valid SQLite database. "
-                 "Google Drive may have returned a warning page. "
-                 "Please ensure the file is publicly shared.")
-        if os.path.exists(dest):
-            os.remove(dest)
-        st.stop()
-
-    with open(dest, "wb") as f:
-        f.write(content)
+def download_db():
+    url = f"https://drive.google.com/uc?id={GDRIVE_ID}"
+    gdown.download(url, DB_PATH, quiet=False, fuzzy=True)
+    # Validate it's a real SQLite file
+    if os.path.exists(DB_PATH):
+        with open(DB_PATH, "rb") as f:
+            header = f.read(16)
+        if not header.startswith(b"SQLite format 3"):
+            os.remove(DB_PATH)
+            return False
+    return True
 
 if not os.path.exists(DB_PATH):
     with st.spinner("⬇️ Downloading database from Google Drive..."):
-        download_from_gdrive(GDRIVE_ID, DB_PATH)
+        success = download_db()
+    if not success:
+        st.error("❌ Failed to download a valid database. Please check the Google Drive link.")
+        st.stop()
 
 # ── Data loading ───────────────────────────────────────────────────────────
 @st.cache_data
@@ -107,6 +77,14 @@ groq_key = st.sidebar.text_input("Groq API Key", type="password",
 # ── Load data ──────────────────────────────────────────────────────────────
 if not os.path.exists(DB_PATH):
     st.error("❌ Database not found and could not be downloaded.")
+    st.stop()
+
+# Check if existing file is valid before loading
+with open(DB_PATH, "rb") as f:
+    header = f.read(16)
+if not header.startswith(b"SQLite format 3"):
+    os.remove(DB_PATH)
+    st.error("❌ Cached database file is corrupt. Please restart the app.")
     st.stop()
 
 df, expl_df = load_data(DB_PATH)
