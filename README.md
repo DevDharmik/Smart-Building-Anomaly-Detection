@@ -77,7 +77,15 @@ data/processed/smartbuilding.db
 | Sprint 1 | ETL pipeline, SQLite ingestion, EDA, data cleaning | ✅ Complete |
 | Sprint 2 | Temporal features, rolling stats, Z-score/IQR anomaly flagging | ✅ Complete |
 | Sprint 3 | ML-based anomaly detection (Isolation Forest, autoencoders) | ✅ Complete |
-| Sprint 4 | Groq LLM explanation layer + Streamlit dashboard | ✅ Complete |
+| Sprint 4 | Groq LLM explanation layer + Streamlit dashboard | ✅ Complete & Deployed |
+
+## 🌐 Live Demo
+
+The dashboard is live on Streamlit Community Cloud:
+
+🔗 **[Launch the App](https://smart-building-anomaly-detection-9kyxncrkvqrzrgbhvntdhg.streamlit.app/)**
+
+Features: per-building Isolation Forest & Z-score anomaly detection, interactive time-series and hourly/daily anomaly-rate charts, and live LLM-powered anomaly explanations via Groq (`llama-3.3-70b-versatile`).
 
 ---
 
