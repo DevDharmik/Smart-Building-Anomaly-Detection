@@ -121,8 +121,8 @@ Never hardcode tokens. Set the following in your Colab session:
 
 ```python
 import os
-os.environ['GITHUB_TOKEN'] = 'your_token_here'   # for Git pushes only
-os.environ['GROQ_API_KEY'] = 'your_groq_key_here' # for LLM layer (Sprint 4)
+os.environ['GITHUB_TOKEN'] = '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'   # for Git pushes only
+os.environ['GROQ_API_KEY'] = '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' # for LLM layer (Sprint 4)
 ```
 
 ---
