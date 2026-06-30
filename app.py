@@ -22,20 +22,16 @@ def download_db():
     except Exception as e:
         st.error(f"gdown failed: {e}")
         return False
-
     if not os.path.exists(DB_PATH):
         return False
-
     with open(DB_PATH, "rb") as f:
         header = f.read(16)
     if not header.startswith(b"SQLite format 3"):
         os.remove(DB_PATH)
         st.error("Downloaded file is not a valid SQLite database.")
         return False
-
     return True
 
-# Delete corrupt cached file if it exists but is invalid
 if os.path.exists(DB_PATH):
     with open(DB_PATH, "rb") as f:
         header = f.read(16)
@@ -48,19 +44,41 @@ if not os.path.exists(DB_PATH):
     if not success:
         st.stop()
 
-# ── Data loading ───────────────────────────────────────────────────────────
+# ── Get list of buildings WITHOUT loading full data ────────────────────────
 @st.cache_data
-def load_data(db_path):
+def get_building_list(db_path):
     conn = sqlite3.connect(db_path)
-    df   = pd.read_sql("SELECT * FROM energy_features", conn)
+    bids = pd.read_sql("SELECT DISTINCT building_id FROM energy_features", conn)
+    conn.close()
+    return sorted(bids["building_id"].tolist())
+
+# ── Load only ONE building's data at a time (huge memory saving) ───────────
+@st.cache_data
+def load_building_data(db_path, building_id):
+    conn = sqlite3.connect(db_path)
+    df = pd.read_sql(
+        """SELECT building_id, timestamp, meter_reading, rolling_mean_24h,
+                  rolling_std_24h, lag_7day, hour, day_of_week, month, is_weekend
+           FROM energy_features
+           WHERE building_id = ?""",
+        conn, params=(int(building_id),)
+    )
     try:
-        expl = pd.read_sql("SELECT * FROM anomaly_explanations", conn)
-    except:
+        expl = pd.read_sql(
+            "SELECT * FROM anomaly_explanations WHERE building_id = ?",
+            conn, params=(int(building_id),)
+        )
+    except Exception:
         expl = pd.DataFrame()
     conn.close()
+
     df["timestamp"] = pd.to_datetime(df["timestamp"])
-    df["z_score"]   = (df["meter_reading"] - df["rolling_mean_24h"]) / \
-                       df["rolling_std_24h"].replace(0, 1)
+    df["z_score"] = (df["meter_reading"] - df["rolling_mean_24h"]) / \
+                     df["rolling_std_24h"].replace(0, 1)
+
+    float_cols = df.select_dtypes("float64").columns
+    df[float_cols] = df[float_cols].astype("float32")
+
     return df, expl
 
 @st.cache_data
@@ -87,13 +105,7 @@ st.sidebar.divider()
 groq_key = st.sidebar.text_input("Groq API Key", type="password",
                                   help="Free key at console.groq.com")
 
-# ── Load data ──────────────────────────────────────────────────────────────
-df, expl_df = load_data(DB_PATH)
-
-with st.spinner("Running Isolation Forest..."):
-    df_m = run_isolation_forest(df)
-
-buildings    = sorted(df_m["building_id"].unique())
+buildings    = get_building_list(DB_PATH)
 sel_building = st.sidebar.selectbox("Select Building", buildings)
 
 method_map = {
@@ -103,7 +115,11 @@ method_map = {
 sel_method = st.sidebar.selectbox("Detection Method", list(method_map.keys()))
 method_col = method_map[sel_method]
 
-bdf = df_m[df_m["building_id"] == sel_building].copy()
+# ── Load only the selected building's data ──────────────────────────────────
+df, expl_df = load_building_data(DB_PATH, sel_building)
+
+with st.spinner("Running Isolation Forest..."):
+    bdf = run_isolation_forest(df)
 
 # ── Header ─────────────────────────────────────────────────────────────────
 st.title("🏢 Smart Building Energy Anomaly Detection")
