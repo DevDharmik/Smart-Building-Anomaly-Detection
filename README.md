@@ -1,132 +1,86 @@
-# 🏢 Smart Building Energy Anomaly Detection
-> Detecting unusual electricity consumption patterns in commercial buildings using statistical baselines, machine learning, and an LLM-powered explanation layer.
+# Smart Building Anomaly Detection
 
-**Course:** Applied Research Methods (ARM) | M.Sc. Data Science  
-**Institution:** University of Europe for Applied Sciences, Potsdam  
-**Supervisor:** Shan Faiz  
-**Team:** Dharmik Champaneri · Hardip Zanzmera · Sauravkumar Pandya · Dharmin Patel
+Multi-dataset anomaly detection system for smart building IoT sensor data, combining statistical and machine learning methods with LLM-generated natural language explanations.
 
----
+Built as part of the M.Sc. Data Science program at the **University of Europe for Applied Sciences (UEAS), Potsdam**.
 
-## 📌 Project Overview
-
-Commercial buildings account for a significant share of global energy consumption. Anomalies — unexpected spikes, drops, or sustained deviations in electricity usage — can signal equipment failure, data errors, or inefficiencies that go undetected for weeks.
-
-This project builds an end-to-end anomaly detection pipeline for electricity meter data across four building sites (Site IDs 0–3), progressing from statistical baselines through ML models to an LLM-powered explanation layer with an interactive Streamlit dashboard.
+**Live Dashboard:** [Streamlit App](https://smart-building-anomaly-detection.streamlit.app) *(update with your actual deployed URL)*
+**Repository:** `github.com/DevDharmik/Smart-Building-Anomaly-Detection`
 
 ---
 
-## 📁 Repository Structure
+## Overview
+
+Buildings generate continuous streams of energy, temperature, humidity, and occupancy data. Detecting anomalies in these streams — equipment faults, unusual consumption spikes, sensor drift — is critical for operational efficiency and predictive maintenance.
+
+This project implements a full anomaly detection pipeline across **two independent smart building datasets**, letting us validate detection methods across different building types, climates, and sensor configurations:
+
+| Dataset | Description | Granularity |
+|---|---|---|
+| **ASHRAE GEPIII** | Global Energy Prediction competition dataset — multi-building electricity meter readings | Hourly, per building |
+| **Sharjah 2024 IoT** | University of Sharjah smart building dataset (Jan–Jun 2024) — power, temperature, humidity, motion | High-frequency, per appliance/room |
+
+## Methodology
+
+Three complementary anomaly detection methods are applied to every stream, with a consensus flag when 2 of 3 agree:
+
+- **Z-score** — flags points beyond 3 standard deviations from the group mean
+- **IQR (Interquartile Range)** — flags points outside `Q1 - 1.5×IQR` / `Q3 + 1.5×IQR`
+- **Isolation Forest** — unsupervised ML model isolating outliers via random partitioning
+
+Flagged anomalies are optionally explained in natural language using **Groq's `llama-3.3-70b-versatile`**, which takes the anomaly's statistical context (value, rolling mean/std, time features) and generates a plausible cause + recommended action for a building manager.
+
+## Tech Stack
+
+- **Data processing:** Python, Pandas, NumPy
+- **ML:** Scikit-learn (Isolation Forest, MinMaxScaler)
+- **Storage:** SQLite
+- **Visualization:** Matplotlib, Seaborn
+- **Dashboard:** Streamlit
+- **LLM explanations:** Groq API (`llama-3.3-70b-versatile`)
+- **Environment:** Google Colab, Google Drive
+
+## Repository Structure
 
 ```
-Smart-Building-Anomaly-Detection/
-│
-├── data/
-│   ├── processed/          # smartbuilding.db (see Dataset section below)
-│   └── raw/                # Raw ASHRAE GEPIII CSVs (gitignored)
-│
 ├── notebooks/
-│   ├── sprint1_pipeline.ipynb      # ETL, EDA, data cleaning
-│   ├── sprint2_features.ipynb      # Feature engineering, anomaly flagging
-│   ├── sprint3_models.ipynb        # ML-based anomaly detection
-│   └── sprint4_dashboard.ipynb     # LLM explanation layer + Streamlit
-│
-├── src/                    # Reusable helper modules
-├── dashboard/              # Streamlit app (coming Sprint 4)
-├── .gitignore
+│   ├── 01-04_gepiii_*.ipynb          # ASHRAE GEPIII pipeline (4 sprints)
+│   ├── 05_sharjah_2024_ingestion.ipynb
+│   └── 06_sharjah_2024_anomaly_detection.ipynb
+├── app.py                             # Streamlit dashboard (dataset toggle: GEPIII / Sharjah)
+├── outputs/
+│   └── plots/                         # Generated visualizations
 └── README.md
 ```
 
----
+## Dashboard Features
 
-## 📦 Dataset
+- Toggle between ASHRAE GEPIII and Sharjah 2024 datasets
+- Per-building / per-appliance / per-location drill-down
+- Switchable detection method (Z-score, IQR, Isolation Forest, Consensus)
+- Hourly and day-of-week anomaly rate breakdowns
+- Live LLM-generated anomaly explanations via Groq
 
-**Source:** [ASHRAE Great Energy Predictor III (GEPIII)](https://www.kaggle.com/c/ashrae-energy-prediction/data)  
-**Scope:** Electricity meters only · Site IDs 0, 1, 2, 3
+## Running Locally
 
-The SQLite database (`smartbuilding.db`) is too large to host on GitHub.
-
-📥 **Download here:** [smartbuilding.db – Google Drive](https://drive.google.com/file/d/11Ko5ebeHwO-6PraaCm94gKkbNRKOsPJo/view?usp=sharing)
-
-After downloading, place the file at:
-```
-data/processed/smartbuilding.db
-```
-
----
-
-## 🔧 Tech Stack
-
-| Layer | Tools |
-|---|---|
-| Language | Python 3.11 |
-| Data & EDA | Pandas, NumPy, Matplotlib, Seaborn |
-| Storage | SQLite via `sqlite3` |
-| ML Models | scikit-learn |
-| LLM Layer | Groq API |
-| Dashboard | Streamlit |
-| Environment | Google Colab + Google Drive |
-| Version Control | GitHub |
-
----
-
-## 🚀 Sprint Progress
-
-| Sprint | Focus | Status |
-|---|---|---|
-| Sprint 1 | ETL pipeline, SQLite ingestion, EDA, data cleaning | ✅ Complete |
-| Sprint 2 | Temporal features, rolling stats, Z-score/IQR anomaly flagging | ✅ Complete |
-| Sprint 3 | ML-based anomaly detection (Isolation Forest, autoencoders) | ✅ Complete |
-| Sprint 4 | Groq LLM explanation layer + Streamlit dashboard | ✅ Complete & Deployed |
-
-## 🌐 Live Demo
-
-The dashboard is live on Streamlit Community Cloud:
-
-🔗 **[Launch the App](https://smart-building-anomaly-detection-9kyxncrkvqrzrgbhvntdhg.streamlit.app/)**
-
-Features: per-building Isolation Forest & Z-score anomaly detection, interactive time-series and hourly/daily anomaly-rate charts, and live LLM-powered anomaly explanations via Groq (`llama-3.3-70b-versatile`).
-
----
-
-## ⚙️ Setup & Usage
-
-### 1. Clone the repo
 ```bash
 git clone https://github.com/DevDharmik/Smart-Building-Anomaly-Detection.git
 cd Smart-Building-Anomaly-Detection
+pip install -r requirements.txt
+streamlit run app.py
 ```
 
-### 2. Download the database
-Download `smartbuilding.db` from the [Google Drive link](https://drive.google.com/file/d/11Ko5ebeHwO-6PraaCm94gKkbNRKOsPJo/view?usp=sharing) and place it in `data/processed/`.
+You'll need a free Groq API key from [console.groq.com](https://console.groq.com) to use the live explanation feature.
 
-### 3. Open in Google Colab
-All notebooks are designed to run in **Google Colab** with the database mounted from Google Drive. Mount your Drive at the start of each notebook:
+## Team
 
-```python
-from google.colab import drive
-drive.mount('/content/drive')
-```
+- Dharmik Champaneri
+- Hardip Zanzmera
+- Sauravkumar Pandya
+- Dharmin Patel
 
-### 4. Install dependencies
-```bash
-pip install pandas numpy matplotlib seaborn scikit-learn streamlit groq
-```
+Supervised by Shan Faiz — UEAS Potsdam.
 
----
+## License
 
-## 🔑 Environment Variables
-
-Never hardcode tokens. Set the following in your Colab session:
-
-```python
-import os
-os.environ['GITHUB_TOKEN'] = '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'   # for Git pushes only
-os.environ['GROQ_API_KEY'] = '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' # for LLM layer (Sprint 4)
-```
-
----
-
-## 📄 License
-
-This project is developed for academic purposes as part of the M.Sc. Data Science programme at the University of Europe for Applied Sciences.
+MIT
