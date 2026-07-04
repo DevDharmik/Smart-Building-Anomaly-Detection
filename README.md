@@ -43,13 +43,25 @@ Flagged anomalies are optionally explained in natural language using **Groq's `l
 ## Repository Structure
 
 ```
+├── data/
+│   └── processed/                     # Generated visualizations
+│       ├── anomaly_by_day.png
+│       ├── anomaly_by_hour.png
+│       ├── distribution_plot.png
+│       ├── hourly_pattern.png
+│       ├── iqr_anomalies.png
+│       ├── timeseries_sample.png
+│       └── zscore_anomalies.png
 ├── notebooks/
-│   ├── 01-04_gepiii_*.ipynb          # ASHRAE GEPIII pipeline (4 sprints)
-│   ├── 05_sharjah_2024_ingestion.ipynb
-│   └── 06_sharjah_2024_anomaly_detection.ipynb
+│   ├── 01_eda.ipynb                        # ASHRAE GEPIII — exploratory analysis
+│   ├── 02_features_baselines.ipynb         # Feature engineering + baseline models
+│   ├── 03_isolation_forest_lstm_shap.ipynb # Isolation Forest, LSTM, SHAP explainability
+│   ├── 04_groq_streamlit.ipynb             # Groq LLM explanation layer
+│   ├── 05_sharjah_2024_ingestion.ipynb     # Sharjah 2024 dataset ingestion
+│   └── 06_sharjah_2024_eda.ipynb           # Sharjah 2024 EDA + anomaly detection
 ├── app.py                             # Streamlit dashboard (dataset toggle: GEPIII / Sharjah)
-├── outputs/
-│   └── plots/                         # Generated visualizations
+├── requirements.txt
+├── LICENSE
 └── README.md
 ```
 
